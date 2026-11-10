@@ -22,7 +22,7 @@ export function emptyBill(): Bill {
 }
 
 /**
- * Turns Claude's reading of the receipt into an editable bill. A line like
+ * Turns Gemini's reading of the receipt into an editable bill. A line like
  * "3 Beer  $21.00" becomes three separate $7.00 beers so different people
  * can each claim one.
  */

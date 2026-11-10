@@ -39,11 +39,11 @@ async function sendResponse(res: ServerResponse, response: Response): Promise<vo
 }
 
 export default defineConfig(({ mode }) => {
-  // Make ANTHROPIC_API_KEY from .env.local visible to the dev API handler.
+  // Make GEMINI_API_KEY from .env.local visible to the dev API handler.
   // It is never exposed to browser code (no VITE_ prefix).
   const env = loadEnv(mode, process.cwd(), "");
-  if (env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY) {
-    process.env.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY;
+  for (const name of ["GEMINI_API_KEY", "GEMINI_MODEL"]) {
+    if (env[name] && !process.env[name]) process.env[name] = env[name];
   }
   return {
     plugins: [react(), receiptApi()],

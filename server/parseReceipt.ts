@@ -1,15 +1,12 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { betaStandardSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/beta/standard-schema";
+import { ApiError, GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 import { ParsedReceiptSchema, type ParsedReceipt } from "./receiptSchema.js";
 
-type ImageMediaType = Anthropic.Beta.BetaBase64ImageSource["media_type"];
+// A fast Gemini model that's on the free tier and reads images. Override
+// with the GEMINI_MODEL environment variable if Google retires it.
+const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 
-const MEDIA_TYPES: readonly ImageMediaType[] = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-];
+const MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 // The browser shrinks photos before upload; this only guards against abuse.
 const MAX_BASE64_LENGTH = 7_000_000;
@@ -28,6 +25,8 @@ Rules:
 - Copy amounts as printed. If part of the receipt is unreadable, extract what you can.
 - Set is_receipt to false only if the image is not a restaurant bill or receipt at all.`;
 
+const RESPONSE_SCHEMA = z.toJSONSchema(ParsedReceiptSchema);
+
 export class ReceiptError extends Error {
   constructor(
     message: string,
@@ -37,80 +36,80 @@ export class ReceiptError extends Error {
   }
 }
 
-let client: Anthropic | null = null;
+let client: GoogleGenAI | null = null;
 
 export async function parseReceiptImage(
   base64Data: string,
   mediaType: string,
 ): Promise<ParsedReceipt> {
-  if (!MEDIA_TYPES.includes(mediaType as ImageMediaType)) {
+  if (!MEDIA_TYPES.includes(mediaType)) {
     throw new ReceiptError("Please upload a JPEG, PNG, WebP or GIF photo.", 400);
   }
   if (!base64Data || base64Data.length > MAX_BASE64_LENGTH) {
     throw new ReceiptError("That photo is empty or too large.", 400);
   }
 
-  client ??= new Anthropic();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new ReceiptError("The server has no GEMINI_API_KEY configured.", 500);
+  }
+  client ??= new GoogleGenAI({ apiKey });
 
-  let response;
+  let text: string | undefined;
   try {
-    response = await client.beta.messages.parse({
-      model: "claude-opus-5-5",
-      max_tokens: 16000,
-      // If the model declines (very unlikely for a receipt), retry server-side
-      // on Anthropic's default fallback model instead of failing.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: {
-        effort: "medium",
-        format: betaStandardSchemaOutputFormat(ParsedReceiptSchema),
-      },
-      system: SYSTEM_PROMPT,
-      messages: [
+    const response = await client.models.generateContent({
+      model: process.env.GEMINI_MODEL || DEFAULT_MODEL,
+      contents: [
         {
           role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType as ImageMediaType,
-                data: base64Data,
-              },
-            },
-            { type: "text", text: "Extract this bill." },
+          parts: [
+            { inlineData: { mimeType: mediaType, data: base64Data } },
+            { text: "Extract this bill." },
           ],
         },
       ],
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        responseJsonSchema: RESPONSE_SCHEMA,
+      },
     });
+    text = response.text;
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      throw new ReceiptError("The server's Anthropic API key is missing or invalid.", 500);
-    }
-    if (error instanceof Anthropic.RateLimitError) {
-      throw new ReceiptError("Too many scans right now. Try again in a minute.", 429);
-    }
-    if (error instanceof Anthropic.BadRequestError) {
-      throw new ReceiptError("Couldn't read that image. Try another photo.", 400);
-    }
-    if (error instanceof Anthropic.APIError) {
+    if (error instanceof ApiError) {
+      if (error.status === 400 && /api key/i.test(error.message)) {
+        throw new ReceiptError("The server's Gemini API key is invalid.", 500);
+      }
+      if (error.status === 401 || error.status === 403) {
+        throw new ReceiptError("The server's Gemini API key is invalid.", 500);
+      }
+      if (error.status === 429) {
+        throw new ReceiptError(
+          "Hit the free scan limit for now. Try again in a minute, or type the items in.",
+          429,
+        );
+      }
+      if (error.status === 404) {
+        throw new ReceiptError(
+          "The Gemini model isn't available. Set GEMINI_MODEL to a current model.",
+          500,
+        );
+      }
+      if (error.status === 400) {
+        throw new ReceiptError("Couldn't read that image. Try another photo.", 400);
+      }
       throw new ReceiptError("The receipt reader is unavailable. Try again shortly.", 502);
-    }
-    if (error instanceof Error && /api key|apiKey|authentication/i.test(error.message)) {
-      // Thrown by the SDK before any request when no credentials are configured.
-      throw new ReceiptError("The server has no ANTHROPIC_API_KEY configured.", 500);
     }
     throw error;
   }
 
-  if (response.stop_reason === "refusal") {
-    throw new ReceiptError("Couldn't read that image. Try another photo.", 422);
-  }
-  if (response.stop_reason === "max_tokens" || !response.parsed_output) {
+  let parsed: ParsedReceipt;
+  try {
+    parsed = ParsedReceiptSchema.parse(JSON.parse(text ?? ""));
+  } catch {
     throw new ReceiptError("Couldn't make sense of that receipt. Try a clearer photo.", 422);
   }
 
-  const parsed = response.parsed_output;
   if (!parsed.is_receipt) {
     throw new ReceiptError("That doesn't look like a receipt. Try another photo.", 422);
   }

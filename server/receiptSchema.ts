@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// The shape Claude fills in when it reads a receipt photo. Amounts are plain
+// The shape Gemini fills in when it reads a receipt photo. Amounts are plain
 // numbers in the receipt's currency (e.g. 12.5 for $12.50).
 export const ParsedReceiptSchema = z.object({
   is_receipt: z
