@@ -1143,7 +1143,6 @@ input[type="text"]:focus {
 .share-actions {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
 }
 
 .person-cards {
@@ -1339,6 +1338,73 @@ input[type="text"]:focus {
   max-height: none;
   width: 250%;
   cursor: zoom-out;
+}
+
+/* ---------- Who paid / Venmo ---------- */
+
+.payer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px 0 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.payer-chip.is-on {
+  border-color: var(--pc);
+  background: color-mix(in srgb, var(--pc) 14%, var(--surface));
+  box-shadow: 0 0 0 1.5px var(--pc);
+}
+
+.venmo-input {
+  position: relative;
+  display: flex;
+}
+
+.venmo-input > span {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.venmo-input input[type="text"] {
+  padding-left: 28px;
+}
+
+.venmo-btn {
+  width: 100%;
+  margin-top: 12px;
+  color: #008cff;
+  border-color: color-mix(in srgb, #008cff 35%, var(--border));
+}
+
+@media (prefers-color-scheme: dark) {
+  .venmo-btn {
+    color: #4fb0ff;
+  }
+}
+
+.paid-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 /* ---------- Toast ---------- */

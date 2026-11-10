@@ -8,6 +8,7 @@ export type Action =
   | { type: "renamePerson"; id: string; name: string }
   | { type: "removePerson"; id: string }
   | { type: "setActive"; id: string }
+  | { type: "setPayer"; id: string | null }
   | { type: "toggleClaim"; itemId: string }
   | { type: "setShared"; itemIds: string[]; shared: boolean }
   | { type: "reset" };
@@ -18,6 +19,7 @@ export const initialState: AppState = {
   people: [],
   claims: {},
   activePersonId: null,
+  payerId: null,
 };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -56,8 +58,12 @@ export function reducer(state: AppState, action: Action): AppState {
       );
       const activePersonId =
         state.activePersonId === action.id ? (people.at(-1)?.id ?? null) : state.activePersonId;
-      return { ...state, people, claims, activePersonId };
+      const payerId = state.payerId === action.id ? null : state.payerId;
+      return { ...state, people, claims, activePersonId, payerId };
     }
+
+    case "setPayer":
+      return { ...state, payerId: action.id };
 
     case "setActive":
       return { ...state, activePersonId: action.id };

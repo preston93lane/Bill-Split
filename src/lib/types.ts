@@ -36,6 +36,8 @@ export interface AppState {
   people: Person[];
   claims: Claims;
   activePersonId: string | null;
+  /** Who put the bill on their card; everyone else pays them back. */
+  payerId: string | null;
 }
 
 export const PERSON_COLORS = 8;

@@ -10,7 +10,7 @@ A phone-friendly web app for splitting a restaurant bill. Take a picture of the 
    - **Shared items:** if more than one person checks an item, it's split evenly between them.
    - **Table dishes:** tap **Table** on an item (apps, a shared bottle) to split it across everyone at the table, including people you add later.
 4. **Totals.** If anything is still unclaimed, a warning lists those items, how many there are, and how much they add up to. You can make them table dishes with one tap, or go back and assign them. Each person's tax, tip, and fees are proportional to their share of the food. Everything is calculated in cents, so the shares always add up to the bill total exactly.
-5. **Share.** **Share with the group** opens your phone's share sheet (Messages, WhatsApp, Instagram DMs, and so on) with a summary of what everyone owes. On desktop it copies the summary to the clipboard instead.
+5. **Share.** Pick **who paid the bill** and, optionally, their Venmo username. **Share with the group** opens your phone's share sheet (Messages, WhatsApp, Instagram DMs, and so on) with a picture of everyone's totals, plus a text with a Venmo link for each person that opens Venmo with their amount and a note filled in. The payer also gets a **Request on Venmo** button on each person's card. Nothing is ever sent automatically; Venmo always asks you to confirm. On desktop, sharing copies a text summary to the clipboard instead.
 
 The receipt photo stays available from the receipt button at the top of every screen. Your progress is saved in the browser, so switching apps to text someone won't lose your work.
 

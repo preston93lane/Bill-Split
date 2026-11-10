@@ -121,7 +121,14 @@ export function App() {
       )}
 
       {step === "results" && bill && (
-        <ResultsStep bill={bill} people={state.people} claims={state.claims} notify={notify} />
+        <ResultsStep
+          bill={bill}
+          people={state.people}
+          claims={state.claims}
+          payerId={state.payerId}
+          onSetPayer={(id) => dispatch({ type: "setPayer", id })}
+          notify={notify}
+        />
       )}
 
       {confirmNew && (
