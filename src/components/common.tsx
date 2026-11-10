@@ -1,6 +1,33 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { centsToInput, parseMoneyInput } from "../lib/money";
 import type { Person } from "../lib/types";
+
+/**
+ * Keeps an overlay inside the part of the screen you can actually see. On
+ * phones the on-screen keyboard covers the bottom of the page without
+ * resizing it, so a bottom sheet would sit behind the keyboard. Matching the
+ * visual viewport puts the sheet (and the field you're typing in) just above
+ * the keyboard instead.
+ */
+function useFitToVisibleArea(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = ref.current;
+    if (!vv || !el) return;
+    const fit = () => {
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.height = `${vv.height}px`;
+      el.style.bottom = "auto";
+    };
+    fit();
+    vv.addEventListener("resize", fit);
+    vv.addEventListener("scroll", fit);
+    return () => {
+      vv.removeEventListener("resize", fit);
+      vv.removeEventListener("scroll", fit);
+    };
+  }, [ref]);
+}
 
 export function Modal({
   title,
@@ -15,6 +42,8 @@ export function Modal({
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useFitToVisibleArea(backdropRef);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -37,7 +66,7 @@ export function Modal({
   }, []);
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div ref={backdropRef} className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         ref={panelRef}
         className={`modal ${tone === "warn" ? "modal-warn" : ""}`}
