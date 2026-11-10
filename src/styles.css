@@ -170,6 +170,12 @@ button {
   max-width: 100%;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .steps {
   display: flex;
   gap: 4px;
@@ -1226,6 +1232,113 @@ input[type="text"]:focus {
   font-size: 0.8rem;
   color: var(--muted);
   margin-top: -8px;
+}
+
+/* ---------- Receipt photo ---------- */
+
+.photo-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 14px 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  color: var(--muted);
+}
+
+.photo-card:hover {
+  background: var(--surface-2);
+}
+
+.photo-card img {
+  width: 48px;
+  height: 56px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 8px;
+  flex: none;
+}
+
+.photo-card > span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+}
+
+.photo-card strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.callout-link {
+  padding: 4px 0 0;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: #0b0a08;
+  color: #f2efe8;
+  animation: fade 0.15s ease;
+}
+
+.photo-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px;
+  font-size: 0.9rem;
+  color: #b9b3a6;
+}
+
+.photo-viewer-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+
+.photo-viewer-scroll {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 0 8px calc(8px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.photo-viewer-scroll img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+  border-radius: 6px;
+}
+
+.photo-viewer-scroll.is-zoomed {
+  display: block;
+}
+
+.photo-viewer-scroll.is-zoomed img {
+  max-width: none;
+  max-height: none;
+  width: 250%;
+  cursor: zoom-out;
 }
 
 /* ---------- Toast ---------- */

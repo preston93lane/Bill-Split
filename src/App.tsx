@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Icon, Modal } from "./components/common";
+import { PhotoViewer } from "./components/PhotoViewer";
 import { ResultsStep } from "./components/ResultsStep";
 import { ReviewStep } from "./components/ReviewStep";
 import { ScanStep } from "./components/ScanStep";
 import { SplitStep } from "./components/SplitStep";
 import { setCurrency } from "./lib/money";
 import type { Step } from "./lib/types";
-import { loadSavedState, reducer, saveState } from "./state";
+import { loadSavedPhoto, loadSavedState, reducer, savePhoto, saveState } from "./state";
 
 const STEPS: { step: Step; title: string; back: Step | null }[] = [
   { step: "scan", title: "", back: null },
@@ -19,6 +20,13 @@ export function App() {
   const [state, dispatch] = useReducer(reducer, undefined, loadSavedState);
   const [confirmNew, setConfirmNew] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<string | null>(loadSavedPhoto);
+  const [viewingPhoto, setViewingPhoto] = useState(false);
+  const closePhoto = useCallback(() => setViewingPhoto(false), []);
+
+  useEffect(() => {
+    savePhoto(photo);
+  }, [photo]);
   const toastTimer = useRef<number | undefined>(undefined);
 
   setCurrency(state.bill?.currency);
@@ -63,19 +71,41 @@ export function App() {
               ))}
             </span>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmNew(true)}>
-            New bill
-          </button>
+          <div className="topbar-actions">
+            {photo && (
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="View receipt photo"
+                title="View receipt photo"
+                onClick={() => setViewingPhoto(true)}
+              >
+                <Icon name="receipt" />
+              </button>
+            )}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmNew(true)}>
+              New bill
+            </button>
+          </div>
         </header>
       )}
 
-      {step === "scan" && <ScanStep onBill={(b) => dispatch({ type: "loadBill", bill: b })} />}
+      {step === "scan" && (
+        <ScanStep
+          onBill={(b, scanned) => {
+            setPhoto(scanned ?? null);
+            dispatch({ type: "loadBill", bill: b });
+          }}
+        />
+      )}
 
       {step === "review" && bill && (
         <ReviewStep
           bill={bill}
           onChange={(b) => dispatch({ type: "updateBill", bill: b })}
           onNext={() => dispatch({ type: "goTo", step: "split" })}
+          photo={photo}
+          onViewPhoto={() => setViewingPhoto(true)}
         />
       )}
 
@@ -107,6 +137,7 @@ export function App() {
                 className="btn btn-danger"
                 onClick={() => {
                   setConfirmNew(false);
+                  setPhoto(null);
                   dispatch({ type: "reset" });
                 }}
               >
@@ -116,6 +147,8 @@ export function App() {
           </div>
         </Modal>
       )}
+
+      {viewingPhoto && photo && <PhotoViewer photo={photo} onClose={closePhoto} />}
 
       <div className={`toast ${toast ? "show" : ""}`} role="status" aria-live="polite">
         {toast}

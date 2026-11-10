@@ -10,7 +10,11 @@ export function ReviewStep({
   bill,
   onChange,
   onNext,
+  photo,
+  onViewPhoto,
 }: {
+  photo: string | null;
+  onViewPhoto: () => void;
   bill: Bill;
   onChange: (bill: Bill) => void;
   onNext: () => void;
@@ -43,6 +47,17 @@ export function ReviewStep({
   return (
     <main className="page review">
       <p className="muted">Fix anything that was misread before you split it.</p>
+
+      {photo && (
+        <button type="button" className="photo-card" onClick={onViewPhoto}>
+          <img src={photo} alt="" />
+          <span>
+            <strong>Receipt photo</strong>
+            <span className="muted">Tap to compare against what was read</span>
+          </span>
+          <Icon name="image" />
+        </button>
+      )}
 
       <label className="field">
         <span className="field-label">Restaurant</span>
@@ -142,7 +157,14 @@ export function ReviewStep({
       {warnings.map((w) => (
         <div key={w} className="callout callout-warn">
           <Icon name="warn" />
-          <p>{w}</p>
+          <div>
+            <p>{w}</p>
+            {photo && (
+              <button type="button" className="link-btn callout-link" onClick={onViewPhoto}>
+                Check the receipt photo
+              </button>
+            )}
+          </div>
         </div>
       ))}
 

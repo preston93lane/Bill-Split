@@ -39,7 +39,13 @@ async function prepareImage(file: File): Promise<PreparedImage> {
   }
 }
 
-export async function scanReceipt(file: File): Promise<ParsedReceipt> {
+export interface ScanResult {
+  receipt: ParsedReceipt;
+  /** The (shrunk) photo that was read, as a data: URL, so it can be shown later. */
+  photo: string;
+}
+
+export async function scanReceipt(file: File): Promise<ScanResult> {
   const image = await prepareImage(file);
   let response: Response;
   try {
@@ -65,5 +71,5 @@ export async function scanReceipt(file: File): Promise<ParsedReceipt> {
         "Receipt scanning isn't available on this server. You can still enter items by hand.",
     );
   }
-  return body.receipt;
+  return { receipt: body.receipt, photo: `data:${image.mediaType};base64,${image.data}` };
 }

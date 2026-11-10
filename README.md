@@ -5,14 +5,14 @@ A phone-friendly web app for splitting a restaurant bill. Take a picture of the 
 ## How it works
 
 1. **Scan.** Take a photo (or pick one from your library). Google's Gemini AI reads the receipt and pulls out every item, the tax, any tip, and other fees. A line like "3 Beer $21.00" becomes three separate $7.00 beers so different people can each claim one.
-2. **Check.** Fix anything that was misread, add or remove items, and set the tip with the 15/18/20/22% buttons or a custom amount. The app warns you if the items don't match the subtotal or total printed on the receipt.
+2. **Check.** Compare against the receipt photo (tap it to view full screen, tap a spot to zoom in), fix anything that was misread, add or remove items, and set the tip with the 15/18/20/22% buttons or a custom amount. The app warns you if the items don't match the subtotal or total printed on the receipt.
 3. **Split.** The bar across the top starts with just a **+** button. Tap it, type a name, then check the items that person ordered. Repeat for each person. Tap someone's name to switch to them, or tap it again to rename or remove them.
    - **Shared items:** if more than one person checks an item, it's split evenly between them.
    - **Table dishes:** tap **Table** on an item (apps, a shared bottle) to split it across everyone at the table, including people you add later.
 4. **Totals.** If anything is still unclaimed, a warning lists those items, how many there are, and how much they add up to. You can make them table dishes with one tap, or go back and assign them. Each person's tax, tip, and fees are proportional to their share of the food. Everything is calculated in cents, so the shares always add up to the bill total exactly.
 5. **Share.** **Share with the group** opens your phone's share sheet (Messages, WhatsApp, Instagram DMs, and so on) with a summary of what everyone owes. On desktop it copies the summary to the clipboard instead.
 
-Your progress is saved in the browser, so switching apps to text someone won't lose your work.
+The receipt photo stays available from the receipt button at the top of every screen. Your progress is saved in the browser, so switching apps to text someone won't lose your work.
 
 ## Getting a free Gemini API key
 

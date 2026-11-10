@@ -5,7 +5,7 @@ import { sampleBill } from "../lib/sample";
 import type { Bill } from "../lib/types";
 import { Icon } from "./common";
 
-export function ScanStep({ onBill }: { onBill: (bill: Bill) => void }) {
+export function ScanStep({ onBill }: { onBill: (bill: Bill, photo?: string) => void }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -22,8 +22,8 @@ export function ScanStep({ onBill }: { onBill: (bill: Bill) => void }) {
     setPreview(URL.createObjectURL(file));
     setBusy(true);
     try {
-      const parsed = await scanReceipt(file);
-      onBill(billFromParsed(parsed));
+      const { receipt, photo } = await scanReceipt(file);
+      onBill(billFromParsed(receipt), photo);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong reading the receipt.");
     } finally {

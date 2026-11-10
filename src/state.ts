@@ -114,3 +114,25 @@ export function saveState(state: AppState): void {
     // Private browsing or storage full: the app still works, it just won't resume.
   }
 }
+
+// The receipt photo is stored separately: it's large, and if the browser's
+// storage is full the rest of the split must still save.
+const PHOTO_KEY = "bill-split:photo:v1";
+
+export function loadSavedPhoto(): string | null {
+  try {
+    return localStorage.getItem(PHOTO_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function savePhoto(photo: string | null): void {
+  try {
+    // Clear first so a failed save never leaves an older bill's photo behind.
+    localStorage.removeItem(PHOTO_KEY);
+    if (photo) localStorage.setItem(PHOTO_KEY, photo);
+  } catch {
+    // Too big to store: the photo still shows until the page is reloaded.
+  }
+}
