@@ -1,16 +1,27 @@
-import { PERSON_COLORS, newId, type AppState, type Bill, type Step } from "./lib/types";
+import {
+  PERSON_COLORS,
+  newId,
+  type AppState,
+  type Bill,
+  type Claims,
+  type Person,
+  type Step,
+} from "./lib/types";
 
 export type Action =
   | { type: "loadBill"; bill: Bill }
   | { type: "updateBill"; bill: Bill }
   | { type: "goTo"; step: Step }
-  | { type: "addPerson"; name: string }
+  | { type: "addPerson"; name: string; id?: string; color?: number }
   | { type: "renamePerson"; id: string; name: string }
   | { type: "removePerson"; id: string }
   | { type: "setActive"; id: string }
   | { type: "setPayer"; id: string | null }
   | { type: "toggleClaim"; itemId: string }
   | { type: "setShared"; itemIds: string[]; shared: boolean }
+  | { type: "setVenmo"; venmo: string }
+  | { type: "setSharedTab"; tab: { id: string; hostKey: string } | null }
+  | { type: "applyRemote"; people: Person[]; claims: Claims }
   | { type: "reset" };
 
 export const initialState: AppState = {
@@ -20,6 +31,8 @@ export const initialState: AppState = {
   claims: {},
   activePersonId: null,
   payerId: null,
+  venmo: "",
+  sharedTab: null,
 };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -36,9 +49,10 @@ export function reducer(state: AppState, action: Action): AppState {
     case "addPerson": {
       const used = new Set(state.people.map((p) => p.color));
       const color =
+        action.color ??
         Array.from({ length: PERSON_COLORS }, (_, i) => i).find((c) => !used.has(c)) ??
         state.people.length % PERSON_COLORS;
-      const person = { id: newId("p"), name: action.name, color };
+      const person = { id: action.id ?? newId("p"), name: action.name, color };
       return { ...state, people: [...state.people, person], activePersonId: person.id };
     }
 
@@ -64,6 +78,25 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case "setPayer":
       return { ...state, payerId: action.id };
+
+    case "setVenmo":
+      return { ...state, venmo: action.venmo };
+
+    case "setSharedTab":
+      return { ...state, sharedTab: action.tab };
+
+    case "applyRemote": {
+      // Friends may have joined or claimed on their phones. Keep the host's
+      // selection if that person still exists.
+      const stillThere = action.people.some((p) => p.id === state.activePersonId);
+      return {
+        ...state,
+        people: action.people,
+        claims: action.claims,
+        activePersonId: stillThere ? state.activePersonId : (action.people.at(-1)?.id ?? null),
+        payerId: action.people.some((p) => p.id === state.payerId) ? state.payerId : null,
+      };
+    }
 
     case "setActive":
       return { ...state, activePersonId: action.id };

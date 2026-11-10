@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Icon, Modal } from "./components/common";
+import { LivePanel } from "./components/LivePanel";
 import { PhotoViewer } from "./components/PhotoViewer";
 import { ResultsStep } from "./components/ResultsStep";
 import { ReviewStep } from "./components/ReviewStep";
 import { ScanStep } from "./components/ScanStep";
 import { SplitStep } from "./components/SplitStep";
+import { inviteText } from "./lib/invite";
 import { setCurrency } from "./lib/money";
+import { shareOrCopy, tabLink } from "./lib/tabApi";
 import type { Step } from "./lib/types";
 import { loadSavedPhoto, loadSavedState, reducer, savePhoto, saveState } from "./state";
+import { useHostSync } from "./useHostSync";
 
 const STEPS: { step: Step; title: string; back: Step | null }[] = [
   { step: "scan", title: "", back: null },
@@ -43,6 +47,26 @@ export function App() {
     window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 2600);
   }, []);
+
+  const { hostDispatch, ensureShared } = useHostSync(state, dispatch, notify);
+  const [linkReady, setLinkReady] = useState<string | null>(null);
+
+  async function sendInvite(text: string) {
+    const result = await shareOrCopy(text);
+    if (result === "blocked") setLinkReady(text);
+    else if (result === "copied") notify("Link copied — paste it into your group chat");
+    else if (result === "failed") setLinkReady(text);
+  }
+
+  async function invite() {
+    if (!state.bill) return;
+    try {
+      const id = await ensureShared();
+      await sendInvite(inviteText(state.bill, tabLink(id)));
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Couldn't create a link.");
+    }
+  }
 
   const { bill } = state;
   const step = bill ? state.step : "scan";
@@ -115,8 +139,19 @@ export function App() {
           people={state.people}
           claims={state.claims}
           activePersonId={state.activePersonId}
-          dispatch={dispatch}
+          dispatch={hostDispatch}
           onDone={() => dispatch({ type: "goTo", step: "results" })}
+          topSlot={
+            <LivePanel
+              bill={bill}
+              people={state.people}
+              claims={state.claims}
+              payerId={state.payerId}
+              tabId={state.sharedTab?.id ?? null}
+              onInvite={invite}
+              notify={notify}
+            />
+          }
         />
       )}
 
@@ -127,6 +162,8 @@ export function App() {
           claims={state.claims}
           payerId={state.payerId}
           onSetPayer={(id) => dispatch({ type: "setPayer", id })}
+          venmo={state.venmo}
+          onVenmoChange={(venmo) => dispatch({ type: "setVenmo", venmo })}
           notify={notify}
         />
       )}
@@ -150,6 +187,42 @@ export function App() {
               >
                 Start over
               </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {linkReady && (
+        <Modal title="Your link is ready" onClose={() => setLinkReady(null)}>
+          <div className="modal-body">
+            <p className="muted">Send it to the group so everyone can check off what they ordered.</p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  void navigator.clipboard
+                    ?.writeText(linkReady)
+                    .then(() => notify("Copied — paste it into your group chat"))
+                    .catch(() => notify("Couldn't copy"));
+                  setLinkReady(null);
+                }}
+              >
+                <Icon name="copy" size={18} /> Copy
+              </button>
+              {typeof navigator.share === "function" && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const text = linkReady;
+                    setLinkReady(null);
+                    void navigator.share({ text }).catch(() => undefined);
+                  }}
+                >
+                  <Icon name="share" size={18} /> Share
+                </button>
+              )}
             </div>
           </div>
         </Modal>

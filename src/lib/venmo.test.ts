@@ -35,3 +35,22 @@ describe("venmo links", () => {
     expect(text).not.toContain("Details");
   });
 });
+
+describe("shared bill reminders", async () => {
+  const { reminderText, statusOf } = await import("./invite");
+  it("only reminds people who still need to act", () => {
+    const host: Person = { id: "h", name: "Preston", color: 0 };
+    const picking: Person = { id: "a", name: "Andrew", color: 1, joined: true };
+    const done: Person = { id: "n", name: "Nathan", color: 2, joined: true, done: true };
+    const waiting: Person = { id: "w", name: "Aaron", color: 3 };
+    const steak = makeItem("Steak", 3000);
+    const fries = makeItem("Fries", 500);
+    const bill = { ...emptyBill(), merchant: "Joe's", items: [steak, fries] };
+    const claims = { [steak.id]: ["h"] };
+    expect(statusOf(host, claims)).toBe("byHost");
+    expect(statusOf(waiting, claims)).toBe("waiting");
+    const text = reminderText(bill, [host, picking, done, waiting], claims, "https://x/?tab=1", null);
+    expect(text).toContain("Still waiting on: Andrew, Aaron");
+    expect(text).toContain("1 item still unclaimed ($5.00): Fries");
+  });
+});

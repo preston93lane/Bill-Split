@@ -1407,6 +1407,189 @@ input[type="text"]:focus {
   font-size: 0.9rem;
 }
 
+/* ---------- Shared bills ---------- */
+
+.live-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.live-invite {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+
+.live-invite > div {
+  flex: 1;
+}
+
+.live-invite .btn {
+  flex: none;
+}
+
+.live-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 2px 0;
+  text-align: left;
+}
+
+.live-summary {
+  flex: 1;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: pulse 2s ease-out infinite;
+  flex: none;
+}
+
+.ok-text {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.live-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.live-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.live-status.is-done {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.live-status.is-waiting {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.live-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.live-actions .btn-secondary {
+  flex: 1;
+}
+
+.you-owe {
+  align-items: center;
+  text-align: center;
+  border-top: 4px solid var(--pc);
+}
+
+.you-owe-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.you-owe-total {
+  font-size: 2.2rem;
+  font-weight: 750;
+  line-height: 1.1;
+}
+
+.venmo-pay {
+  background: #008cff;
+  color: #fff;
+}
+
+.venmo-pay:hover {
+  background: #0077d9 !important;
+}
+
+.join {
+  padding-top: calc(40px + env(safe-area-inset-top));
+}
+
+.join-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.join-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-align: left;
+}
+
+.join-person:hover {
+  border-color: var(--pc);
+}
+
+.join-person .muted {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.join-new {
+  display: flex;
+  gap: 8px;
+}
+
+.join-new input {
+  flex: 1;
+}
+
 /* ---------- Toast ---------- */
 
 .toast {

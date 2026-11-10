@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type Dispatch, type FormEvent } from "react";
+import { useState, type CSSProperties, type Dispatch, type FormEvent, type ReactNode } from "react";
 import { formatMoney } from "../lib/money";
 import { computeSplit, ownersOf, shareLabel } from "../lib/split";
 import type { Bill, Claims, Item, Person } from "../lib/types";
@@ -12,9 +12,25 @@ interface Props {
   activePersonId: string | null;
   dispatch: Dispatch<Action>;
   onDone: () => void;
+  /**
+   * A friend claiming on their own phone from a shared link: they only check
+   * off their own items and can't add people or change table dishes.
+   */
+  guest?: boolean;
+  /** Shown under the people bar (the host's live status for shared bills). */
+  topSlot?: ReactNode;
 }
 
-export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDone }: Props) {
+export function SplitStep({
+  bill,
+  people,
+  claims,
+  activePersonId,
+  dispatch,
+  onDone,
+  guest = false,
+  topSlot,
+}: Props) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Person | null>(null);
   const [showUnclaimed, setShowUnclaimed] = useState(false);
@@ -26,7 +42,8 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
   const activeTotal = split.people.find((p) => p.person.id === active?.id);
 
   function tryFinish() {
-    if (unclaimed.length > 0) setShowUnclaimed(true);
+    if (guest) onDone();
+    else if (unclaimed.length > 0) setShowUnclaimed(true);
     else onDone();
   }
 
@@ -39,14 +56,16 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
   return (
     <main className="page split">
       <div className="people-bar" role="toolbar" aria-label="People splitting the bill">
-        <button
-          type="button"
-          className={`add-person ${people.length === 0 ? "pulse" : ""}`}
-          aria-label="Add a person"
-          onClick={() => setAdding(true)}
-        >
-          <Icon name="plus" size={22} />
-        </button>
+        {!guest && (
+          <button
+            type="button"
+            className={`add-person ${people.length === 0 ? "pulse" : ""}`}
+            aria-label="Add a person"
+            onClick={() => setAdding(true)}
+          >
+            <Icon name="plus" size={22} />
+          </button>
+        )}
         <div className="people-scroll">
           {people.map((p) => (
             <button
@@ -55,9 +74,12 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
               className={`person-chip ${p.id === active?.id ? "is-active" : ""}`}
               style={{ "--pc": `var(--p${p.color})` } as CSSProperties}
               aria-pressed={p.id === active?.id}
-              onClick={() =>
-                p.id === active?.id ? setEditing(p) : dispatch({ type: "setActive", id: p.id })
-              }
+              disabled={guest && p.id !== active?.id}
+              onClick={() => {
+                if (guest) return;
+                if (p.id === active?.id) setEditing(p);
+                else dispatch({ type: "setActive", id: p.id });
+              }}
             >
               <Avatar person={p} size={24} />
               <span className="person-name">{p.name}</span>
@@ -66,18 +88,31 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
         </div>
       </div>
 
+      {topSlot}
+
       {active ? (
         <div className="active-banner" style={{ "--pc": `var(--p${active.color})` } as CSSProperties}>
           <div>
-            <span className="muted">Check everything</span> <strong>{active.name}</strong>{" "}
-            <span className="muted">ordered</span>
+            {guest ? (
+              <>
+                <span className="muted">Hi</span> <strong>{active.name}</strong>
+                <span className="muted">! Check everything you ordered</span>
+              </>
+            ) : (
+              <>
+                <span className="muted">Check everything</span> <strong>{active.name}</strong>{" "}
+                <span className="muted">ordered</span>
+              </>
+            )}
           </div>
           <div className="active-total num">
             {activeTotal?.lines.length ?? 0} items · {formatMoney(activeTotal?.itemsCents ?? 0)}
           </div>
-          <button type="button" className="link-btn" onClick={() => setEditing(active)}>
-            <Icon name="edit" size={14} /> Edit
-          </button>
+          {!guest && (
+            <button type="button" className="link-btn" onClick={() => setEditing(active)}>
+              <Icon name="edit" size={14} /> Edit
+            </button>
+          )}
         </div>
       ) : (
         <div className="empty-people">
@@ -138,6 +173,7 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
               </label>
               <div className="item-side">
                 <span className="item-price num">{formatMoney(item.priceCents)}</span>
+{!guest && (
                 <button
                   type="button"
                   className={`table-toggle ${item.shared ? "is-on" : ""}`}
@@ -147,6 +183,7 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
                 >
                   <Icon name="table" size={14} /> Table
                 </button>
+)}
               </div>
             </li>
           );
@@ -171,7 +208,7 @@ export function SplitStep({ bill, people, claims, activePersonId, dispatch, onDo
           </div>
         </div>
         <button type="button" className="btn btn-primary btn-lg" disabled={people.length === 0} onClick={tryFinish}>
-          See who owes what
+          {guest ? "I'm done" : "See who owes what"}
         </button>
       </footer>
 

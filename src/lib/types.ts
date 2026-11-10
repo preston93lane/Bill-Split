@@ -23,6 +23,10 @@ export interface Person {
   id: string;
   name: string;
   color: number;
+  /** Shared bills only: opened the link and picked this name on their phone. */
+  joined?: boolean;
+  /** Shared bills only: tapped "I'm done". */
+  done?: boolean;
 }
 
 /** itemId -> ids of the people who claimed it. */
@@ -38,6 +42,10 @@ export interface AppState {
   activePersonId: string | null;
   /** Who put the bill on their card; everyone else pays them back. */
   payerId: string | null;
+  /** The payer's Venmo username, for pay links. */
+  venmo: string;
+  /** Set once the host shares the bill so friends can claim on their phones. */
+  sharedTab: { id: string; hostKey: string } | null;
 }
 
 export const PERSON_COLORS = 8;

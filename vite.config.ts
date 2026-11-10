@@ -3,8 +3,8 @@ import type { ServerResponse } from "node:http";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Connect, type Plugin, type ViteDevServer } from "vite";
 
-// Serves POST /api/parse-receipt from the dev server using the same handler
-// that runs as a Vercel function in production.
+// Serves /api/parse-receipt and /api/tab from the dev server using the same
+// handlers that run as Vercel functions in production.
 function receiptApi(): Plugin {
   return {
     name: "receipt-api",
@@ -15,6 +15,14 @@ function receiptApi(): Plugin {
             "/server/parseReceipt.ts",
           )) as typeof import("./server/parseReceipt");
           await sendResponse(res, await handleParseReceipt(toRequest(req)));
+        })().catch(next);
+      });
+      server.middlewares.use("/api/tab", (req, res, next) => {
+        void (async () => {
+          const { handleTab } = (await server.ssrLoadModule(
+            "/server/tabs.ts",
+          )) as typeof import("./server/tabs");
+          await sendResponse(res, await handleTab(toRequest(req)));
         })().catch(next);
       });
     },
@@ -42,7 +50,14 @@ export default defineConfig(({ mode }) => {
   // Make GEMINI_API_KEY from .env.local visible to the dev API handler.
   // It is never exposed to browser code (no VITE_ prefix).
   const env = loadEnv(mode, process.cwd(), "");
-  for (const name of ["GEMINI_API_KEY", "GEMINI_MODEL"]) {
+  for (const name of [
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "KV_REST_API_URL",
+    "KV_REST_API_TOKEN",
+  ]) {
     if (env[name] && !process.env[name]) process.env[name] = env[name];
   }
   return {

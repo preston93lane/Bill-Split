@@ -14,6 +14,24 @@ A phone-friendly web app for splitting a restaurant bill. Take a picture of the 
 
 The receipt photo stays available from the receipt button at the top of every screen. Your progress is saved in the browser, so switching apps to text someone won't lose your work.
 
+## Letting friends claim on their own phones
+
+On the "Who had what?" screen, tap **Send link** and share it with the group. Each friend opens the link, taps their name (or types it in), checks off what they ordered, and taps **I'm done**. Then they see what they owe, with a **Pay on Venmo** button once every item is claimed.
+
+The host sees it update live: who's done, who's still picking, who hasn't opened it, and how many items are left. **Remind everyone** shares a reminder listing who's still missing and what's unclaimed. **Nudge** sends one person a personal reminder. Messages go out through your phone's share sheet, so the app never needs anyone's phone number or contacts. The host can still check items off for anyone, mark table dishes, and finish the split.
+
+Shared bills are deleted automatically after 30 days.
+
+### Turning on sharing (one time, free)
+
+Shared bills are stored in a free Upstash Redis database connected through Vercel:
+
+1. In your Vercel project, open the **Storage** tab → **Create Database** (or **Browse Marketplace**) → **Upstash for Redis**, and pick the free plan.
+2. Connect it to this project. Vercel adds the connection settings automatically.
+3. Redeploy (Deployments → ⋯ → Redeploy) so the app picks them up.
+
+Without a database, the rest of the app still works; only **Send link** shows an error. When running locally without one, shared bills are kept in memory.
+
 ## Getting a free Gemini API key
 
 Receipt scanning uses Google's Gemini API, which has a free tier.
@@ -57,3 +75,6 @@ The app is set up for [Vercel](https://vercel.com): import the repo, add `GEMINI
 | `src/components/` | The four screens: Scan, Review, Split, Results |
 | `server/parseReceipt.ts` | Sends the photo to Gemini and returns structured JSON |
 | `api/parse-receipt.ts` | Vercel function wrapper |
+| `server/tabs.ts`, `server/tabStore.ts` | Shared bills: the API friends' phones talk to, stored in Upstash Redis |
+| `src/GuestApp.tsx` | What a friend sees when they open a shared link |
+| `src/components/LivePanel.tsx` | The host's live status, reminders, and nudges |

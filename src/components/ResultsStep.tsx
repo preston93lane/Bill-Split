@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { formatMoney } from "../lib/money";
 import { billTotal, itemsTotal } from "../lib/receipt";
 import { buildShareText } from "../lib/share";
@@ -10,6 +10,7 @@ import {
   rememberVenmo,
   rememberedVenmo,
   venmoNote,
+  venmoPayLink,
   venmoRequestLink,
 } from "../lib/venmo";
 import { Avatar, Icon } from "./common";
@@ -49,27 +50,39 @@ export function ResultsStep({
   claims,
   payerId,
   onSetPayer,
+  venmo: venmoRaw,
+  onVenmoChange,
   notify,
+  viewerId,
 }: {
   bill: Bill;
   people: Person[];
   claims: Claims;
   payerId: string | null;
   onSetPayer: (id: string | null) => void;
+  venmo: string;
+  onVenmoChange: (venmo: string) => void;
   notify: (message: string) => void;
+  /** A friend viewing a shared bill: read-only, with their own total up top. */
+  viewerId?: string;
 }) {
   const split = computeSplit(bill, people, claims);
   const total = billTotal(bill);
   const assigned = split.people.reduce((sum, p) => sum + p.totalCents, 0);
   const payer = people.find((p) => p.id === payerId) ?? null;
-  const [venmoInput, setVenmoInput] = useState(() => (payer ? rememberedVenmo(payer.name) : ""));
   const [sharing, setSharing] = useState(false);
-  const venmo = cleanVenmoUsername(venmoInput);
+  const venmo = cleanVenmoUsername(venmoRaw);
   const note = venmoNote(bill.merchant);
+  const readOnly = viewerId !== undefined;
+  const viewer = split.people.find((p) => p.person.id === viewerId);
+  const unclaimedCount = split.unclaimed.length;
 
-  // Fill in a payer's Venmo username if it was entered on an earlier bill.
+  // When the payer changes, fill in their Venmo username from an earlier bill.
+  const lastPayer = useRef(payer?.id);
   useEffect(() => {
-    setVenmoInput(payer ? rememberedVenmo(payer.name) : "");
+    if (readOnly || lastPayer.current === payer?.id) return;
+    lastPayer.current = payer?.id;
+    onVenmoChange(payer ? rememberedVenmo(payer.name) : "");
   }, [payer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fullText = () => buildShareText(bill, split, { payer, venmo });
@@ -121,6 +134,44 @@ export function ResultsStep({
         </p>
       </section>
 
+      {readOnly && unclaimedCount > 0 && (
+        <div className="callout callout-warn">
+          <Icon name="warn" />
+          <p>
+            {unclaimedCount} item{unclaimedCount === 1 ? " is" : "s are"} still unclaimed, so these totals
+            can still change.
+          </p>
+        </div>
+      )}
+
+      {readOnly && viewer && (
+        <section className="card you-owe" style={{ "--pc": `var(--p${viewer.person.color})` } as CSSProperties}>
+          {viewer.person.id === payerId ? (
+            <p>
+              <strong>You paid the bill.</strong> Everyone else pays you back.
+            </p>
+          ) : (
+            <>
+              <p className="you-owe-label">You owe{payer ? ` ${payer.name}` : ""}</p>
+              <p className="you-owe-total num">{formatMoney(viewer.totalCents)}</p>
+              {payer && venmo && viewer.totalCents > 0 && unclaimedCount === 0 && (
+                <a
+                  className="btn btn-primary btn-lg venmo-pay"
+                  href={venmoPayLink(venmo, viewer.totalCents, note)}
+                >
+                  Pay {payer.name} on Venmo
+                </a>
+              )}
+              {payer && venmo && unclaimedCount > 0 && (
+                <p className="muted small">The Venmo button appears once every item is claimed.</p>
+              )}
+            </>
+          )}
+        </section>
+      )}
+
+      {!readOnly && (
+        <>
       <section className="card payer-card">
         <div className="card-head">
           <h2>Who paid the bill?</h2>
@@ -147,14 +198,14 @@ export function ResultsStep({
               <span aria-hidden="true">@</span>
               <input
                 type="text"
-                value={venmoInput}
+                value={venmoRaw}
                 placeholder="username"
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
                 onChange={(e) => {
                   // The "@" is already shown in front, so drop any typed ones.
-                  setVenmoInput(e.target.value.replace(/^\s*@+/, ""));
+                  onVenmoChange(e.target.value.replace(/^\s*@+/, ""));
                   rememberVenmo(payer.name, cleanVenmoUsername(e.target.value));
                 }}
               />
@@ -176,6 +227,8 @@ export function ResultsStep({
           <Icon name="copy" />
         </button>
       </div>
+        </>
+      )}
 
       <ul className="person-cards">
         {split.people.map((p) => {
@@ -217,7 +270,7 @@ export function ResultsStep({
                 <p className="paid-note">
                   <Icon name="check" size={16} /> Paid the bill
                 </p>
-              ) : payer && p.totalCents > 0 ? (
+              ) : !readOnly && payer && p.totalCents > 0 ? (
                 <a className="btn btn-secondary venmo-btn" href={venmoRequestLink(p.totalCents, note)}>
                   Request {formatMoney(p.totalCents)} on Venmo
                 </a>
