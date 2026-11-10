@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Icon, Modal } from "./components/common";
 import { LivePanel } from "./components/LivePanel";
+import { VenmoSheet } from "./components/VenmoSheet";
 import { PhotoViewer } from "./components/PhotoViewer";
 import { ResultsStep } from "./components/ResultsStep";
 import { ReviewStep } from "./components/ReviewStep";
@@ -10,7 +11,19 @@ import { inviteText } from "./lib/invite";
 import { setCurrency } from "./lib/money";
 import { shareOrCopy, tabLink } from "./lib/tabApi";
 import type { Step } from "./lib/types";
-import { loadSavedPhoto, loadSavedState, reducer, savePhoto, saveState } from "./state";
+import {
+  archiveState,
+  loadHistory,
+  loadMyVenmo,
+  loadSavedPhoto,
+  loadSavedState,
+  reducer,
+  removeFromHistory,
+  saveMyVenmo,
+  savePhoto,
+  saveState,
+  type SavedBill,
+} from "./state";
 import { useHostSync } from "./useHostSync";
 
 const STEPS: { step: Step; title: string; back: Step | null }[] = [
@@ -20,7 +33,7 @@ const STEPS: { step: Step; title: string; back: Step | null }[] = [
   { step: "results", title: "Who owes what", back: "split" },
 ];
 
-export function App() {
+export function App({ openTabId }: { openTabId?: string } = {}) {
   const [state, dispatch] = useReducer(reducer, undefined, loadSavedState);
   const [confirmNew, setConfirmNew] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -50,6 +63,42 @@ export function App() {
 
   const { hostDispatch, ensureShared } = useHostSync(state, dispatch, notify);
   const [linkReady, setLinkReady] = useState<string | null>(null);
+  const [history, setHistory] = useState<SavedBill[]>(loadHistory);
+  const [myVenmo, setMyVenmo] = useState(loadMyVenmo);
+  const [editingVenmo, setEditingVenmo] = useState(false);
+  // Worth saving to "Unfinished bills" rather than throwing away.
+  const keepsCurrent = !!state.bill && (state.people.length > 0 || !!state.sharedTab);
+
+  function startOver() {
+    setHistory(archiveState(state));
+    setPhoto(null);
+    dispatch({ type: "reset" });
+  }
+
+  function reopen(saved: SavedBill) {
+    // Take it off the list, put whatever's open now away, then bring it back.
+    removeFromHistory(saved.savedAt);
+    setHistory(keepsCurrent ? archiveState(state) : loadHistory());
+    setPhoto(null);
+    dispatch({ type: "reopen", state: saved.state });
+  }
+
+  // Opened the link to one of your own older shared bills: reopen it here.
+  const openedTab = useRef(false);
+  useEffect(() => {
+    if (!openTabId || openedTab.current) return;
+    openedTab.current = true;
+    const saved = loadHistory().find((h) => h.state.sharedTab?.id === openTabId);
+    if (saved) reopen(saved);
+  }, [openTabId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function saveVenmo(venmo: string) {
+    saveMyVenmo(venmo);
+    setMyVenmo(venmo);
+    if (state.bill) dispatch({ type: "setVenmo", venmo });
+    setEditingVenmo(false);
+    notify(venmo ? `Pay links now go to @${venmo}` : "Venmo removed");
+  }
 
   async function sendInvite(text: string) {
     const result = await shareOrCopy(text);
@@ -96,6 +145,15 @@ export function App() {
             </span>
           </div>
           <div className="topbar-actions">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Venmo for pay links"
+              title="Venmo for pay links"
+              onClick={() => setEditingVenmo(true)}
+            >
+              <Icon name="money" />
+            </button>
             {photo && (
               <button
                 type="button"
@@ -118,8 +176,13 @@ export function App() {
         <ScanStep
           onBill={(b, scanned) => {
             setPhoto(scanned ?? null);
-            dispatch({ type: "loadBill", bill: b });
+            dispatch({ type: "loadBill", bill: b, venmo: myVenmo });
           }}
+          unfinished={history}
+          onReopen={reopen}
+          onDiscard={(saved) => setHistory(removeFromHistory(saved.savedAt))}
+          venmo={myVenmo}
+          onEditVenmo={() => setEditingVenmo(true)}
         />
       )}
 
@@ -171,7 +234,11 @@ export function App() {
       {confirmNew && (
         <Modal title="Start a new bill?" onClose={() => setConfirmNew(false)}>
           <div className="modal-body">
-            <p className="muted">This clears the current receipt and everyone's picks.</p>
+            <p className="muted">
+              {keepsCurrent
+                ? "This one is saved under “Unfinished bills” on the first screen, so you can come back to it."
+                : "This clears the current receipt."}
+            </p>
             <div className="modal-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setConfirmNew(false)}>
                 Keep this one
@@ -181,11 +248,10 @@ export function App() {
                 className="btn btn-danger"
                 onClick={() => {
                   setConfirmNew(false);
-                  setPhoto(null);
-                  dispatch({ type: "reset" });
+                  startOver();
                 }}
               >
-                Start over
+                {keepsCurrent ? "New bill" : "Start over"}
               </button>
             </div>
           </div>
@@ -226,6 +292,15 @@ export function App() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {editingVenmo && (
+        <VenmoSheet
+          initial={state.bill ? state.venmo || myVenmo : myVenmo}
+          hasBill={!!state.bill && !!state.sharedTab}
+          onSave={saveVenmo}
+          onClose={() => setEditingVenmo(false)}
+        />
       )}
 
       {viewingPhoto && photo && <PhotoViewer photo={photo} onClose={closePhoto} />}

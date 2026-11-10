@@ -3,9 +3,25 @@ import { scanReceipt } from "../lib/image";
 import { billFromParsed, emptyBill, makeItem } from "../lib/receipt";
 import { sampleBill } from "../lib/sample";
 import type { Bill } from "../lib/types";
+import { computeSplit } from "../lib/split";
+import type { SavedBill } from "../state";
 import { Icon } from "./common";
 
-export function ScanStep({ onBill }: { onBill: (bill: Bill, photo?: string) => void }) {
+export function ScanStep({
+  onBill,
+  unfinished,
+  onReopen,
+  onDiscard,
+  venmo,
+  onEditVenmo,
+}: {
+  onBill: (bill: Bill, photo?: string) => void;
+  unfinished: SavedBill[];
+  onReopen: (saved: SavedBill) => void;
+  onDiscard: (saved: SavedBill) => void;
+  venmo: string;
+  onEditVenmo: () => void;
+}) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -87,6 +103,53 @@ export function ScanStep({ onBill }: { onBill: (bill: Bill, photo?: string) => v
             </button>
           </div>
         </section>
+      )}
+
+      {!busy && unfinished.length > 0 && (
+        <section className="unfinished" aria-label="Unfinished bills">
+          <h2 className="field-label">Unfinished bills</h2>
+          {unfinished.map((saved) => {
+            const s = saved.state;
+            const left = s.bill ? computeSplit(s.bill, s.people, s.claims).unclaimed.length : 0;
+            const done = s.people.filter((p) => p.done).length;
+            return (
+              <div key={saved.savedAt} className="unfinished-row">
+                <button type="button" className="unfinished-open" onClick={() => onReopen(saved)}>
+                  <strong>{s.bill?.merchant ?? "Bill"}</strong>
+                  <span className="muted small">
+                    {new Date(saved.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {" · "}
+                    {s.people.length} {s.people.length === 1 ? "person" : "people"}
+                    {s.sharedTab ? ` · ${done} done` : ""}
+                    {left ? ` · ${left} item${left === 1 ? "" : "s"} left` : " · all claimed"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`Delete ${s.bill?.merchant ?? "bill"}`}
+                  onClick={() => onDiscard(saved)}
+                >
+                  <Icon name="trash" size={18} />
+                </button>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {!busy && (
+        <button type="button" className="venmo-setting" onClick={onEditVenmo}>
+          <Icon name="money" size={18} />
+          {venmo ? (
+            <span>
+              Venmo for pay links: <strong>@{venmo}</strong>
+            </span>
+          ) : (
+            <span>Add your Venmo for pay links</span>
+          )}
+          <span className="muted small">{venmo ? "Change" : "Add"}</span>
+        </button>
       )}
 
       <input

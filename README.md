@@ -10,7 +10,7 @@ A phone-friendly web app for splitting a restaurant bill. Take a picture of the 
    - **Shared items:** if more than one person checks an item, it's split evenly between them.
    - **Table dishes:** tap **Table** on an item (apps, a shared bottle) to split it across everyone at the table, including people you add later.
 4. **Totals.** If anything is still unclaimed, a warning lists those items, how many there are, and how much they add up to. You can make them table dishes with one tap, or go back and assign them. Each person's tax, tip, and fees are proportional to their share of the food. Everything is calculated in cents, so the shares always add up to the bill total exactly.
-5. **Share.** Pick **who paid the bill** and, optionally, their Venmo username. **Share with the group** opens your phone's share sheet (Messages, WhatsApp, Instagram DMs, and so on) with a picture of everyone's totals, plus a text with a Venmo link for each person that opens Venmo with their amount and a note filled in. The payer also gets a **Request on Venmo** button on each person's card. Nothing is ever sent automatically; Venmo always asks you to confirm. On desktop, sharing copies a text summary to the clipboard instead.
+5. **Share.** Pick **who paid the bill**. Set the Venmo account that pay links go to from the **$** button at the top of any screen (or on the first screen); it's remembered for future bills. **Share with the group** opens your phone's share sheet (Messages, WhatsApp, Instagram DMs, and so on) with a picture of everyone's totals, plus a text with a Venmo link for each person that opens Venmo with their amount and a note filled in. The payer also gets a **Request on Venmo** button on each person's card. Nothing is ever sent automatically; Venmo always asks you to confirm. On desktop, sharing copies a text summary to the clipboard instead.
 
 The receipt photo stays available from the receipt button at the top of every screen. Your progress is saved in the browser, so switching apps to text someone won't lose your work.
 
@@ -20,7 +20,7 @@ On the "Who had what?" screen, tap **Send link** and share it with the group. Ea
 
 The host sees it update live: who's done, who's still picking, who hasn't opened it, and how many items are left. **Remind everyone** shares a reminder listing who's still missing and what's unclaimed. **Nudge** sends one person a personal reminder. Messages go out through your phone's share sheet, so the app never needs anyone's phone number or contacts. The host can still check items off for anyone, mark table dishes, and finish the split.
 
-Shared bills are deleted automatically after 30 days.
+**Nothing is lost if people are slow.** A shared bill stays online until nobody has opened or changed it for 90 days, and every visit resets that clock. Your phone also keeps a full copy. If the online copy ever expires, opening the bill on your phone puts it back automatically under the **same link**, with everyone's picks. Starting a new bill doesn't throw the old one away either: anything with people on it is saved under **Unfinished bills** on the first screen, ready to reopen (or delete with the trash icon).
 
 ### Turning on sharing (one time, free)
 

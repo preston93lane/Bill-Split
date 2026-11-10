@@ -46,10 +46,10 @@ export function GuestApp({ tabId }: { tabId: string }) {
     toastTimer.current = window.setTimeout(() => setToast(null), 2600);
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (open = false) => {
     if (inflight.current > 0) return;
     try {
-      const s = await tabApi.get(tabId);
+      const s = await tabApi.get(tabId, open);
       if (inflight.current > 0) return;
       setSnap(s);
       setError(null);
@@ -59,7 +59,7 @@ export function GuestApp({ tabId }: { tabId: string }) {
   }, [tabId]);
 
   useEffect(() => {
-    void refresh();
+    void refresh(true);
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void refresh();
     }, POLL_MS);
@@ -89,7 +89,15 @@ export function GuestApp({ tabId }: { tabId: string }) {
         {error ? (
           <div className="callout callout-danger" role="alert">
             <Icon name="warn" />
-            <p>{error}</p>
+            <div>
+              <p>{error}</p>
+              {/expired|doesn't exist/.test(error) && (
+                <p>
+                  Ask whoever sent the link to open Bill Split on their phone. That brings the bill back,
+                  and this same link will work again.
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <p className="muted" style={{ textAlign: "center" }}>

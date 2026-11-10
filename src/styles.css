@@ -1590,6 +1590,58 @@ input[type="text"]:focus {
   flex: 1;
 }
 
+/* ---------- Unfinished bills & Venmo setting ---------- */
+
+.unfinished {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unfinished-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.unfinished-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.venmo-setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  color: var(--text);
+}
+
+.venmo-setting > span:first-of-type {
+  flex: 1;
+}
+
+.venmo-setting svg {
+  color: #008cff;
+}
+
 /* ---------- Toast ---------- */
 
 .toast {

@@ -271,13 +271,18 @@ function layout(
   }
 
   // Footer: who to pay.
-  if (payer) {
+  if (payer || venmo) {
     y += 6;
     ctx.textAlign = "center";
     ctx.font = font(600, 15);
     if (draw) {
       ctx.fillStyle = t.text;
-      const who = venmo ? `Pay ${payer.name} on Venmo: @${venmo}` : `Pay ${payer.name} back`;
+      const who =
+        payer && venmo
+          ? `Pay ${payer.name} on Venmo: @${venmo}`
+          : payer
+            ? `Pay ${payer.name} back`
+            : `Pay on Venmo: @${venmo}`;
       ctx.fillText(who, center, y + 15);
     }
     y += 26;

@@ -21,22 +21,36 @@ export function useHostSync(
   const lastMeta = useRef<string | null>(null);
   const tab = state.sharedTab;
 
-  const refresh = useCallback(async () => {
-    const current = stateRef.current.sharedTab;
-    if (!current || inflight.current > 0) return;
-    try {
-      const snap = await tabApi.get(current.id);
-      // Skip if the host changed something while this request was out.
-      if (inflight.current > 0 || stateRef.current.sharedTab?.id !== current.id) return;
-      dispatch({ type: "applyRemote", ...fromSnapshot(snap) });
-    } catch (e) {
-      if (e instanceof Error && /expired|doesn't exist/.test(e.message)) {
-        notify("The shared link expired; send a new one.");
-        dispatch({ type: "setSharedTab", tab: null });
+  const restoring = useRef(false);
+  const refresh = useCallback(
+    async (open = false) => {
+      const current = stateRef.current.sharedTab;
+      if (!current || inflight.current > 0 || restoring.current) return;
+      try {
+        const snap = await tabApi.get(current.id, open);
+        // Skip if the host changed something while this request was out.
+        if (inflight.current > 0 || stateRef.current.sharedTab?.id !== current.id) return;
+        dispatch({ type: "applyRemote", ...fromSnapshot(snap) });
+      } catch (e) {
+        if (!(e instanceof Error && /expired|doesn't exist/.test(e.message))) return; // offline: retry next tick
+        // The server let it expire, but this phone has everything: put it back
+        // under the same link so friends' links keep working.
+        const s = stateRef.current;
+        if (!s.bill || !s.sharedTab) return;
+        restoring.current = true;
+        try {
+          await tabApi.restore(s.sharedTab.id, s.sharedTab.hostKey, s.bill, s.people, s.claims, s.payerId, s.venmo);
+          lastMeta.current = JSON.stringify([s.bill, s.payerId, s.venmo]);
+          notify("Your shared bill had expired. It's back, same link.");
+        } catch {
+          // Try again on the next tick.
+        } finally {
+          restoring.current = false;
+        }
       }
-      // Other errors (offline for a moment): try again on the next tick.
-    }
-  }, [dispatch, notify]);
+    },
+    [dispatch, notify],
+  );
 
   /** Runs a change on the server, then pulls the latest state. */
   const send = useCallback(
@@ -55,11 +69,11 @@ export function useHostSync(
   // Poll for friends' updates while the page is visible.
   useEffect(() => {
     if (!tab) return;
-    void refresh();
+    void refresh(true);
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void refresh();
     }, POLL_MS);
-    const onVisible = () => document.visibilityState === "visible" && void refresh();
+    const onVisible = () => document.visibilityState === "visible" && void refresh(true);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.clearInterval(timer);

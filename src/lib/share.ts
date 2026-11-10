@@ -35,8 +35,8 @@ export function buildShareText(bill: Bill, result: SplitResult, options: ShareOp
   );
 
   const owing = result.people.filter((p) => p.person.id !== payer?.id && p.totalCents > 0);
-  if (payer && venmo && owing.length > 0) {
-    out.push("", `Pay ${payer.name} on Venmo (@${venmo}):`);
+  if (venmo && owing.length > 0) {
+    out.push("", payer ? `Pay ${payer.name} on Venmo (@${venmo}):` : `Pay on Venmo (@${venmo}):`);
     const note = venmoNote(bill.merchant);
     for (const p of owing) {
       out.push(`${p.person.name}: ${venmoPayLink(venmo, p.totalCents, note)}`);

@@ -77,12 +77,14 @@ export function ResultsStep({
   const viewer = split.people.find((p) => p.person.id === viewerId);
   const unclaimedCount = split.unclaimed.length;
 
-  // When the payer changes, fill in their Venmo username from an earlier bill.
+  // When the payer changes, use their Venmo username from an earlier bill if
+  // there is one; otherwise keep what's set (usually your own).
   const lastPayer = useRef(payer?.id);
   useEffect(() => {
     if (readOnly || lastPayer.current === payer?.id) return;
     lastPayer.current = payer?.id;
-    onVenmoChange(payer ? rememberedVenmo(payer.name) : "");
+    const remembered = payer ? rememberedVenmo(payer.name) : "";
+    if (remembered) onVenmoChange(remembered);
   }, [payer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fullText = () => buildShareText(bill, split, { payer, venmo });
@@ -154,15 +156,15 @@ export function ResultsStep({
             <>
               <p className="you-owe-label">You owe{payer ? ` ${payer.name}` : ""}</p>
               <p className="you-owe-total num">{formatMoney(viewer.totalCents)}</p>
-              {payer && venmo && viewer.totalCents > 0 && unclaimedCount === 0 && (
+              {venmo && viewer.totalCents > 0 && unclaimedCount === 0 && (
                 <a
                   className="btn btn-primary btn-lg venmo-pay"
                   href={venmoPayLink(venmo, viewer.totalCents, note)}
                 >
-                  Pay {payer.name} on Venmo
+                  Pay {payer ? payer.name : `@${venmo}`} on Venmo
                 </a>
               )}
-              {payer && venmo && unclaimedCount > 0 && (
+              {venmo && unclaimedCount > 0 && (
                 <p className="muted small">The Venmo button appears once every item is claimed.</p>
               )}
             </>

@@ -37,6 +37,11 @@ const PersonSchema = z.object({
   color: z.number().int().min(0).max(7),
 });
 
+const SharedPersonSchema = PersonSchema.extend({
+  joined: z.boolean().optional(),
+  done: z.boolean().optional(),
+});
+
 const MetaFields = {
   bill: BillSchema,
   payerId: IdSchema.nullable(),
@@ -48,6 +53,15 @@ const Body = z.discriminatedUnion("action", [
     action: z.literal("create"),
     ...MetaFields,
     people: z.array(PersonSchema).max(MAX_PEOPLE),
+    claims: z.record(IdSchema, z.array(IdSchema)),
+  }),
+  z.object({
+    // The host's phone putting back a bill that expired, under the same link.
+    action: z.literal("restore"),
+    id: IdSchema,
+    hostKey: z.string().min(16),
+    ...MetaFields,
+    people: z.array(SharedPersonSchema).max(MAX_PEOPLE),
     claims: z.record(IdSchema, z.array(IdSchema)),
   }),
   z.object({ action: z.literal("setMeta"), id: IdSchema, hostKey: z.string(), ...MetaFields }),
@@ -177,6 +191,38 @@ async function handle(store: TabStore, body: z.infer<typeof Body>): Promise<unkn
       return { id, hostKey };
     }
 
+    case "restore": {
+      const existing = await store.read(body.id);
+      if (existing.meta) {
+        checkHost(JSON.parse(existing.meta) as StoredMeta, body.hostKey);
+        return { restored: false };
+      }
+      const meta: StoredMeta = {
+        bill: body.bill,
+        payerId: body.payerId,
+        venmo: body.venmo,
+        hostKeyHash: hash(body.hostKey),
+        createdAt: Date.now(),
+      };
+      await store.setMeta(body.id, JSON.stringify(meta));
+      let order = Date.now();
+      for (const p of body.people) {
+        const person: SharedPerson = {
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          joined: p.joined ?? false,
+          done: p.done ?? false,
+          order: order++,
+        };
+        await store.setPerson(body.id, p.id, JSON.stringify(person));
+      }
+      for (const [itemId, personIds] of Object.entries(body.claims)) {
+        for (const personId of personIds) await store.addClaim(body.id, claimField(itemId, personId));
+      }
+      return { restored: true };
+    }
+
     case "setMeta": {
       const loaded = await load(store, body.id);
       checkHost(loaded.meta, body.hostKey);
@@ -258,6 +304,8 @@ export async function handleTab(request: Request): Promise<Response> {
       const id = IdSchema.safeParse(new URL(request.url).searchParams.get("id"));
       if (!id.success) throw new HttpError(400, "Missing bill id.");
       const loaded = await load(store, id.data);
+      // Polls don't extend the 90 days (to save database calls); opening it does.
+      if (new URL(request.url).searchParams.has("open")) await store.touch(id.data);
       return Response.json(snapshot(id.data, loaded), {
         headers: { "Cache-Control": "no-store" },
       });

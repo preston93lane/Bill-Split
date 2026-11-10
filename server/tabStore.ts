@@ -10,7 +10,10 @@
 
 import { Redis } from "@upstash/redis";
 
-export const TAB_TTL_SECONDS = 60 * 60 * 24 * 30; // shared bills expire after 30 days
+// A shared bill is kept until nobody has opened or changed it for 90 days.
+// Even after that, the host's phone still has a full copy and quietly puts
+// it back (same link) the next time the host opens the app.
+export const TAB_TTL_SECONDS = 60 * 60 * 24 * 90;
 
 export interface TabData {
   meta: string | null;
@@ -25,6 +28,8 @@ export interface TabStore {
   deletePerson(id: string, personId: string): Promise<void>;
   addClaim(id: string, field: string): Promise<void>;
   removeClaims(id: string, fields: string[]): Promise<void>;
+  /** Resets the 90-day clock (called when someone opens the bill). */
+  touch(id: string): Promise<void>;
 }
 
 const keys = (id: string) => ({
@@ -36,8 +41,8 @@ const keys = (id: string) => ({
 class RedisStore implements TabStore {
   constructor(private redis: Redis) {}
 
-  /** Every write pushes the expiry back so active bills don't vanish. */
-  private async touch(id: string) {
+  /** Every write (and every fresh open) pushes the expiry back. */
+  async touch(id: string) {
     const k = keys(id);
     const p = this.redis.pipeline();
     p.expire(k.meta, TAB_TTL_SECONDS);
@@ -113,6 +118,7 @@ class MemoryStore implements TabStore {
   async removeClaims(id: string, fields: string[]) {
     for (const f of fields) this.claims.get(id)?.delete(f);
   }
+  async touch() {}
 }
 
 let store: TabStore | null = null;

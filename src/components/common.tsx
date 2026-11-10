@@ -162,6 +162,8 @@ const ICONS = {
   trash: "M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13",
   warn: "M12 3l10 18H2z M12 10v4 M12 17.5h.01",
   receipt: "M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6 M9 16h3",
+  money:
+    "M12 3v18 M16.5 7.5c-.6-1.6-2.3-2.5-4.5-2.5-2.5 0-4.5 1.3-4.5 3.3 0 4.4 9 2.4 9 6.9 0 2-2 3.3-4.5 3.3-2.3 0-4-1-4.6-2.7",
 } as const;
 
 export function Icon({ name, size = 20 }: { name: keyof typeof ICONS; size?: number }) {

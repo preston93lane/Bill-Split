@@ -9,7 +9,8 @@ import {
 } from "./lib/types";
 
 export type Action =
-  | { type: "loadBill"; bill: Bill }
+  | { type: "loadBill"; bill: Bill; venmo?: string }
+  | { type: "reopen"; state: AppState }
   | { type: "updateBill"; bill: Bill }
   | { type: "goTo"; step: Step }
   | { type: "addPerson"; name: string; id?: string; color?: number }
@@ -38,7 +39,10 @@ export const initialState: AppState = {
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "loadBill":
-      return { ...initialState, bill: action.bill, step: "review" };
+      return { ...initialState, bill: action.bill, venmo: action.venmo ?? "", step: "review" };
+
+    case "reopen":
+      return { ...initialState, ...action.state, step: action.state.people.length ? "split" : "review" };
 
     case "updateBill":
       return { ...state, bill: action.bill };
@@ -173,5 +177,69 @@ export function savePhoto(photo: string | null): void {
     if (photo) localStorage.setItem(PHOTO_KEY, photo);
   } catch {
     // Too big to store: the photo still shows until the page is reloaded.
+  }
+}
+
+// Unfinished bills: starting a new bill tucks the current one away here
+// (if anyone was added to it) so it can be reopened later instead of lost.
+const HISTORY_KEY = "bill-split:history:v1";
+const HISTORY_LIMIT = 15;
+
+export interface SavedBill {
+  savedAt: number;
+  state: AppState;
+}
+
+export function loadHistory(): SavedBill[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as unknown;
+    return Array.isArray(parsed) ? (parsed as SavedBill[]).filter((h) => h?.state?.bill) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHistory(list: SavedBill[]): void {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_LIMIT)));
+  } catch {
+    // Storage full: older bills just won't be kept.
+  }
+}
+
+/** Saves the current bill to the unfinished list, if it's worth keeping. */
+export function archiveState(state: AppState): SavedBill[] {
+  const list = loadHistory();
+  if (!state.bill || (state.people.length === 0 && !state.sharedTab)) return list;
+  const sameBill = (h: SavedBill) =>
+    (state.sharedTab && h.state.sharedTab?.id === state.sharedTab.id) || h.state.bill === state.bill;
+  const next = [{ savedAt: Date.now(), state }, ...list.filter((h) => !sameBill(h))];
+  writeHistory(next);
+  return next;
+}
+
+export function removeFromHistory(savedAt: number): SavedBill[] {
+  const next = loadHistory().filter((h) => h.savedAt !== savedAt);
+  writeHistory(next);
+  return next;
+}
+
+// The Venmo username used for pay links by default, saved on this phone.
+const MY_VENMO_KEY = "bill-split:my-venmo:v1";
+
+export function loadMyVenmo(): string {
+  try {
+    return localStorage.getItem(MY_VENMO_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveMyVenmo(venmo: string): void {
+  try {
+    if (venmo) localStorage.setItem(MY_VENMO_KEY, venmo);
+    else localStorage.removeItem(MY_VENMO_KEY);
+  } catch {
+    // Not saved for next time, but still used for this bill.
   }
 }

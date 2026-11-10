@@ -32,7 +32,30 @@ const post = <T>(body: Record<string, unknown>) =>
   call<T>({ method: "POST", body: JSON.stringify(body) });
 
 export const tabApi = {
-  get: (id: string) => call<TabSnapshot>(undefined, `?id=${encodeURIComponent(id)}`),
+  /** `open` marks a fresh visit, which keeps the bill from expiring. */
+  get: (id: string, open = false) =>
+    call<TabSnapshot>(undefined, `?id=${encodeURIComponent(id)}${open ? "&open=1" : ""}`),
+
+  /** Puts back a bill that expired from the server, under the same link. */
+  restore: (
+    id: string,
+    hostKey: string,
+    bill: Bill,
+    people: Person[],
+    claims: Claims,
+    payerId: string | null,
+    venmo: string,
+  ) =>
+    post<{ restored: boolean }>({
+      action: "restore",
+      id,
+      hostKey,
+      bill,
+      people: people.map(({ id, name, color, joined, done }) => ({ id, name, color, joined, done })),
+      claims,
+      payerId,
+      venmo,
+    }),
 
   create: (bill: Bill, people: Person[], claims: Claims, payerId: string | null, venmo: string) =>
     post<{ id: string; hostKey: string }>({
